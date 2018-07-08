@@ -247,7 +247,9 @@ def apply_patch (module, msg, oracle_home, patch_base, patch_id, patch_version, 
         msg = 'STDOUT: %s, COMMAND: %s' % (stdout,command)
         module.fail_json(msg=msg, changed=False)
     else:
-        return True
+	msg = 'STDOUT: %s, COMMAND: %s' % (stdout,command)
+        chg = "successfully applied" in stdout
+        module.exit_json(changed=chg, msg=msg)
 
 
 def remove_patch (module, msg, oracle_home, patch_base, patch_id, opatchauto, ocm_response_file):
