@@ -444,7 +444,7 @@ def create_db (module, msg, oracle_home, sys_password, system_password, dbsnmp_p
             paramslist = ",".join(initparams)
             initparam += ' %s' % (paramslist)
 
-    if initparam != '-initParams ' and paramslist != "":
+    if initparam != '-initParams ' and (paramslist != "" or db_unique_name != None):
         command += initparam
     #module.exit_json(msg=command, changed=False)
     (rc, stdout, stderr) = module.run_command(command)
