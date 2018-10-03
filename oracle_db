@@ -294,7 +294,7 @@ def get_version(module, msg, oracle_home):
 
 
 # Check if the database exists
-def check_db_exists(module, msg, oracle_home, db_name, db_unique_name ):
+def check_db_exists(module, msg, oracle_home, db_name, db_unique_name, sid ):
 
     if gimanaged:
         if db_unique_name != None:
@@ -318,6 +318,10 @@ def check_db_exists(module, msg, oracle_home, db_name, db_unique_name ):
             msg = '%s' % (stdout)
             return True
     else:
+        if sid != None:
+            oratabsid = sid
+        else:
+            oratabsid = db_name
         existingdbs = []
         oratabfile = '/etc/oratab'
         if os.path.exists(oratabfile):
@@ -325,16 +329,16 @@ def check_db_exists(module, msg, oracle_home, db_name, db_unique_name ):
                 for line in oratab:
             		if line.startswith('#') or line.startswith(' '):
             			continue
-            		elif re.search(db_name +':', line):
+            		elif re.search(oratabsid +':', line):
             			existingdbs.append(line)
 
         if not existingdbs: #<-- db doesn't exist
             return False
         else:
             for dbs in existingdbs:
-                if '%s:' % db_name in dbs:
+                if '%s:' % oratabsid in dbs:
                     if dbs.split(':')[1] != oracle_home: #<-- DB is created, but with a different ORACLE_HOME
-                        msg = 'Database %s already exists in a different ORACLE_HOME (%s)' % (db_name, dbs.split(':')[1])
+                        msg = 'Database %s already exists in a different ORACLE_HOME (%s)' % (oratabsid, dbs.split(':')[1])
                         module.fail_json(msg=msg, changed=False)
                     elif dbs.split(':')[1] == oracle_home:  #<-- Database already exist
                         return True
@@ -914,7 +918,7 @@ def main():
     major_version = get_version(module,msg,oracle_home)
 
     if state == 'present':
-        if not check_db_exists(module, msg, oracle_home,db_name,db_unique_name):
+        if not check_db_exists(module, msg, oracle_home,db_name,db_unique_name,sid):
             if create_db(module, msg, oracle_home, sys_password, system_password, dbsnmp_password, db_name, sid, db_unique_name, responsefile, template, cdb, local_undo, datafile_dest, recoveryfile_dest,
                         storage_type, dbconfig_type, racone_service, characterset, memory_percentage, memory_totalmb, nodelist, db_type, amm, initparams, customscripts,datapatch):
                 newdb = True
@@ -927,7 +931,7 @@ def main():
             # module.exit_json(msg=msg, changed=False)
 
     elif state == 'absent':
-        if check_db_exists(module, msg, oracle_home, db_name, db_unique_name):
+        if check_db_exists(module, msg, oracle_home, db_name, db_unique_name,sid):
             if remove_db(module, msg, oracle_home, db_name,db_unique_name, sys_password):
                 msg = 'Successfully removed database %s' % (db_name)
                 module.exit_json(msg=msg, changed=True)
