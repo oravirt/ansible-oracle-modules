@@ -72,7 +72,7 @@ options:
         default: create session
     ldap_connect:
         description:
-            - LDAP connect string eg ldap://domain.int:389
+            - "LDAP connect string eg ldap://domain.int:389"
         required: true
     ldap_binddn:
         description:
@@ -112,7 +112,7 @@ options:
         description:
             - Each user can be granted additional roles based on LDAP group membership, this parameter describes the relationship between group LDAP DN and Oracle group name
             - Each list item must be DICT with elements dn and groups
-            - Example list item: {dn: "CN=prod_db_reader,OU=Security Groups,DC=domain,DC=int", group: "prod_db_reader"}
+            - 'Example list item: {dn: "CN=prod_db_reader,OU=Security Groups,DC=domain,DC=int", group: "prod_db_reader"}'
         required: false
         type: list of dicts
 notes:

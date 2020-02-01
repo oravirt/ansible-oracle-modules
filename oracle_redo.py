@@ -19,17 +19,17 @@ options:
     hostname:
         description:
             - The Oracle database host
-        required: false
+        required: False
         default: localhost
     port:
         description:
             - The listener port number on the host
-        required: false
+        required: False
         default: 1521
     service_name:
         description:
             - The database service name to connect to
-        required: true
+        required: True
     user:
         description:
             - The Oracle user name to connect to the database, must have DBA privilege
@@ -41,25 +41,23 @@ options:
     mode:
         description:
             - The mode with which to connect to the database
-        required: true
+        required: True
         default: normal
         choices: ['normal','sysdba']
     size:
         description:
             - size of redologs
-        required:
-            - True
+        required: True
         default:
             - 50MB
     groups:
         description:
             - The number of redolog groups
-        required:
-            - False
+        required: False
     members:
         description:
             - Either to set the preference (present) or reset it to default (absent)
-        required: true
+        required: True
         default: 1
 
 

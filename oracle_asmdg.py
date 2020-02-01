@@ -6,79 +6,79 @@ DOCUMENTATION = '''
 module: oracle_asmdg
 short_description: Manage diskgroups in an Oracle database
 description:
-	- Manage diskgroups in an Oracle database
+  - Manage diskgroups in an Oracle database
 version_added: "2.1.0.0"
 options:
-	name:
-		description:
-			- The name of the diskgroup
-		required: true
-		default: None
-		aliases: ['diskgroup','dg']
-	state:
-		description:
-			- The intended state of the diskgroup. 'status' will just show the status of the diskgroup
-		default: present
-		choices: ['present','absent','status']
-	disks:
-		description:
-			- A list of disks that should be part of the diskgroup. Only the listed disks will be part of the DG, meaning if the disk is removed from the list it will also be removed from the DG
-		default: None
-	redundancy:
-		description:
-			- The redundancy configuration for the diskgroup, It does not yet support putting disks in specific failure groups
-		default: external
-		choices: ['external','normal','high']
-	attribute_name:
-		description:
-			- The attribute name (e.g compatible.rdbms)
-		default: None
-		aliases: ['an']
-	attribute_value:
-		description:
-			- The attribute value (e.g 12.1.0.2)
-		default: None
-		aliases: ['av']
-	username:
-		description:
-			- The ASM username
-		required: false
-		default: sys
-		aliases: ['un']
-	password:
-		description:
-			- The password for the ASM user
-		required: false
-		default: None
-		aliases: ['pw']
-	service_name:
-		description:
-			- The diskgroup_name to connect to the database if using dbms_diskgroup.
-		required: false
-		default: +ASM
-		aliases: ['sn']
-	hostname:
-		description:
-			- The host of the database if using dbms_diskgroup
-		required: false
-		default: localhost
-		aliases: ['host']
-	port:
-		description:
-			- The listener port to connect to the database if using dbms_diskgroup
-		required: false
-		default: 1521
-	oracle_home:
-		description:
-			- The GI ORACLE_HOME
-		required: false
-		default: None
-		aliases: ['oh']
+  name:
+    description:
+      - The name of the diskgroup
+    required: true
+    default: None
+    aliases: ['diskgroup','dg']
+  state:
+    description:
+      - The intended state of the diskgroup. 'status' will just show the status of the diskgroup
+    default: present
+    choices: ['present','absent','status']
+  disks:
+    description:
+      - A list of disks that should be part of the diskgroup. Only the listed disks will be part of the DG, meaning if the disk is removed from the list it will also be removed from the DG
+    default: None
+  redundancy:
+    description:
+      - The redundancy configuration for the diskgroup, It does not yet support putting disks in specific failure groups
+    default: external
+    choices: ['external','normal','high']
+  attribute_name:
+    description:
+      - The attribute name (e.g compatible.rdbms)
+    default: None
+    aliases: ['an']
+  attribute_value:
+    description:
+      - The attribute value (e.g 12.1.0.2)
+    default: None
+    aliases: ['av']
+  username:
+    description:
+      - The ASM username
+    required: false
+    default: sys
+    aliases: ['un']
+  password:
+    description:
+      - The password for the ASM user
+    required: false
+    default: None
+    aliases: ['pw']
+  service_name:
+    description:
+      - The diskgroup_name to connect to the database if using dbms_diskgroup.
+    required: false
+    default: +ASM
+    aliases: ['sn']
+  hostname:
+    description:
+      - The host of the database if using dbms_diskgroup
+    required: false
+    default: localhost
+    aliases: ['host']
+  port:
+    description:
+      - The listener port to connect to the database if using dbms_diskgroup
+    required: false
+    default: 1521
+  oracle_home:
+    description:
+      - The GI ORACLE_HOME
+    required: false
+    default: None
+    aliases: ['oh']
 
 
 
 notes:
-	- cx_Oracle needs to be installed
+  - cx_Oracle needs to be installed
 requirements: [ "cx_Oracle" ]
 author: Mikael Sandström, oravirt@gmail.com, @oravirt
 '''
@@ -86,35 +86,35 @@ author: Mikael Sandström, oravirt@gmail.com, @oravirt
 EXAMPLES = '''
 # Create a diskgroup
 oracle_asmdg:
-		name: MYDG1
-		disks:
-		   - ORCL:MYDG1
-		   - ORCL:MYDG2
-		attribute_name: compatible.asm
-		attribute_value: 12.1.0.2
-		redundancy: external
-		state: present
-		un: sys
-		pw: oracle123
-		sn: '+ASM'
-		host: localhost
-		oh: /u01/app/oracle/12.1.2.0/grid
+    name: MYDG1
+    disks:
+       - ORCL:MYDG1
+       - ORCL:MYDG2
+    attribute_name: compatible.asm
+    attribute_value: 12.1.0.2
+    redundancy: external
+    state: present
+    un: sys
+    pw: oracle123
+    sn: '+ASM'
+    host: localhost
+    oh: /u01/app/oracle/12.1.2.0/grid
 
 oracle_asmdg:
-		name: DATA
-		disks:
-		   - /dev/oracle/data1
-		   - /dev/oracle/data2
-		attributes:
-			- {name: compatible.asm, value: 12.2.0.1.0 }
-			- {name: compatible.rdbms, value: 12.2.0.1.0 }
-		redundancy: external
-		state: present
-		un: sys
-		pw: oracle123
-		sn: '+ASM'
-		host: localhost
-		oh: /u01/app/oracle/12.2.0.1/grid
+    name: DATA
+    disks:
+       - /dev/oracle/data1
+       - /dev/oracle/data2
+    attributes:
+      - {name: compatible.asm, value: 12.2.0.1.0 }
+      - {name: compatible.rdbms, value: 12.2.0.1.0 }
+    redundancy: external
+    state: present
+    un: sys
+    pw: oracle123
+    sn: '+ASM'
+    host: localhost
+    oh: /u01/app/oracle/12.2.0.1/grid
 
 '''
 import os

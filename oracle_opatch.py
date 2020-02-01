@@ -5,6 +5,7 @@ DOCUMENTATION = '''
 ---
 module: oracle_opatch
 short_description: Manage patches in an Oracle environment
+description: Manage patches in an Oracle environment
     - Manages patches (applies/rolls back)
     - Only manages the opatch part of patching (opatch/opatch auto/opatchauto)
     - If opatchauto is true, the task has to be run as root
@@ -92,7 +93,6 @@ options:
         default: 1521
 
 notes:
-    -
 requirements: [ "os","pwd","distutils.version" ]
 author: Mikael Sandström, oravirt@gmail.com, @oravirt
 '''
@@ -311,7 +311,7 @@ def stop_process(module, oracle_home):
                                    p = subprocess.check_call([lsnrctl_bin, 'stop', '%s' % listener_name])
                                except subprocess.CalledProcessError:
                                    msg += 'Stop of Listener %s failed ' % listener_name
-               
+
                    # Stop instances in ORACLE_HOME
                    # The [0-9] is used to remove the grep itself from the result!
                    p = subprocess.Popen('ps -elf| grep "[0-9] ora_pmon_%s"' % (line.split(':')[0]) , shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

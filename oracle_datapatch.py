@@ -36,8 +36,8 @@ options:
     output:
         description:
             - The type of output you want.
-            - Verbose: stdout of the command
-            - short: Pre-defined message
+            - C(Verbose) stdout of the command
+            - C(short) Pre-defined message
         required: False
         default: short
         aliases: ['db','database_name','name']

@@ -6,204 +6,204 @@ DOCUMENTATION = '''
 module: oracle_db
 short_description: Manage an Oracle database
 description:
-	- Create/delete a database using dbca
-	- If a responsefile is available, that will be used. If initparams is defined, those will be attached to the createDatabase command
-	- If no responsefile is created, the database will be created based on all other parameters
+  - Create/delete a database using dbca
+  - If a responsefile is available, that will be used. If initparams is defined, those will be attached to the createDatabase command
+  - If no responsefile is created, the database will be created based on all other parameters
 version_added: "2.4.0.0"
 options:
-	oracle_home:
-		description:
-			- The home where the database will be created
-		required: False
-		aliases: ['oh']
-	db_name:
-		description:
-			- The name of the database
-		required: True
-		default: None
-		aliases: ['db','database_name','name']
-	sid:
-		description:
-			- The instance name
-		required: False
-		default: None
-	db_unique_name:
-		description:
-			- The database db_unique_name
-		required: False
-		default: None
-		aliases: ['dbunqn','unique_name']
-	sys_password:
-		description:
-			- Password for the sys user
-		required: False
-		default: None
-		aliases: ['syspw','sysdbapassword','sysdbapw']
-	system_password:
-		description:
-			- Password for the system user
-			- If not set, defaults to sys_password
-		required: False
-		default: None
-		aliases: ['systempw']
-	dbsnmp_password:
-		description:
-			- Password for the dbsnmp user
-			- If not set, defaults to sys_password
-		required: False
-		default: None
-		aliases: ['dbsnmppw']
-	responsefile:
-		description:
-			- The name of responsefile
-		required: True
-		default: None
-	template:
-		description:
-			- The template the database will be based off
-		required: False
-		default: General_Purpose.dbc
-	cdb:
-		description:
-			- Should the database be a container database
-		required: False
-		default: False
-		aliases: ['container']
-		choices: ['True','False']
-	datafile_dest:
-		description:
-			- Where the database files should be placed (ASM diskgroup or filesystem path)
-		required: False
-		default: False
-		aliases: ['dfd']
-	recoveryfile_dest:
-		description:
-			- Where the database files should be placed (ASM diskgroup or filesystem path)
-		required: False
-		default: False
-		aliases: ['rfd']
-	storage_type:
-		description:
-			- Type of underlying storage (Filesystem or ASM)
-		required: False
-		default: FS
-		aliases: ['storage']
-		choices: ['FS','ASM']
-	dbconfig_type:
-		description:
-			- Type of database (SI,RAC,RON)
-		required: False
-		default: SI
-		choices: ['SI','RAC','RACONENODE']
-	db_type:
-		description:
-			- Default Type of database (MULTIPURPOSE, OLTP, DATA_WAREHOUSING)
-		required: False
-		default: MULTIPURPOSE
-		choices: ['MULTIPURPOSE','OLTP','DATA_WAREHOUSING']
-	racone_service:
-		description:
-			- If dbconfig_type = RACONENODE, a service has to be created along with the DB. This is the name of that service
-			- If no name is defined, the service will be called "{{ db_name }}_ronserv"
-		required: False
-		default: None
-		aliases: ['ron_service']
-	characterset:
-		description:
-			- The database characterset
-		required: False
-		default: AL32UTF8
-	memory_percentage:
-		description:
-			- The database total memory in % of available memory
-		required: False
-	memory_totalmb:
-		description:
-			- The database total memory in MB. Defaults to 1G
-		required: False
-		default: ['1024']
-	nodelist:
-		description:
-			- The list of nodes a RAC DB should be created on
-		required: False
-	amm:
-		description:
-			- Should Automatic Memory Management be used (memory_target, memory_max_target)
-		required: False
-		Default: False
-		choices: ['True','False']
-	initparams:
-		description:
-			- List of key=value pairs
-			- e.g
-			  init_params:
-				  - sga_target=1G
-				  - sga_max_size=1G
-		required: False
-	customscripts:
-		description:
-			- List of scripts to run after database is created
-			- e.g
-			  customScripts:
-				  - /tmp/xxx.sql
-				  - /tmp/yyy.sql
-		required: False
-	default_tablespace_type:
-		description:
-			- Database default tablespace type (DEFAULT_TBS_TYPE)
-		default: smallfile
-		choices: ['smallfile','bigfile']
-	default_tablespace:
-		description:
-			- Database default tablespace
-		default: smallfile
-		required: False
-	default_temp_tablespace:
-		description:
-			- Database default temporary tablespace
-		required: False
-	archivelog:
-		description:
-			- Puts the database is archivelog mode
-		required: False
-		default: false
-		choices: ['True','False']
-		type: bool
-	force_logging:
-		description:
-			- Enables force logging for the Database
-		required: False
-		default: false
-		choices: ['True','False']
-		type: bool
-	flashback:
-		description:
-			- Enables flashback for the database
-		required: False
-		default: false
-		choices: ['True','False']
-		type: bool
-	state:
-		description:
-			- The intended state of the database
-		default: present
-		choices: ['present','absent']
-	hostname:
-		description:
-			- The host of the database if using dbms_service
-		required: false
-		default: localhost
-		aliases: ['host']
-	port:
-		description:
-			- The listener port to connect to the database if using dbms_service
-		required: false
-		default: 1521
+  oracle_home:
+    description:
+      - The home where the database will be created
+    required: False
+    aliases: ['oh']
+  db_name:
+    description:
+      - The name of the database
+    required: True
+    default: None
+    aliases: ['db','database_name','name']
+  sid:
+    description:
+      - The instance name
+    required: False
+    default: None
+  db_unique_name:
+    description:
+      - The database db_unique_name
+    required: False
+    default: None
+    aliases: ['dbunqn','unique_name']
+  sys_password:
+    description:
+      - Password for the sys user
+    required: False
+    default: None
+    aliases: ['syspw','sysdbapassword','sysdbapw']
+  system_password:
+    description:
+      - Password for the system user
+      - If not set, defaults to sys_password
+    required: False
+    default: None
+    aliases: ['systempw']
+  dbsnmp_password:
+    description:
+      - Password for the dbsnmp user
+      - If not set, defaults to sys_password
+    required: False
+    default: None
+    aliases: ['dbsnmppw']
+  responsefile:
+    description:
+      - The name of responsefile
+    required: True
+    default: None
+  template:
+    description:
+      - The template the database will be based off
+    required: False
+    default: General_Purpose.dbc
+  cdb:
+    description:
+      - Should the database be a container database
+    required: False
+    default: False
+    aliases: ['container']
+    choices: ['True','False']
+  datafile_dest:
+    description:
+      - Where the database files should be placed (ASM diskgroup or filesystem path)
+    required: False
+    default: False
+    aliases: ['dfd']
+  recoveryfile_dest:
+    description:
+      - Where the database files should be placed (ASM diskgroup or filesystem path)
+    required: False
+    default: False
+    aliases: ['rfd']
+  storage_type:
+    description:
+      - Type of underlying storage (Filesystem or ASM)
+    required: False
+    default: FS
+    aliases: ['storage']
+    choices: ['FS','ASM']
+  dbconfig_type:
+    description:
+      - Type of database (SI,RAC,RON)
+    required: False
+    default: SI
+    choices: ['SI','RAC','RACONENODE']
+  db_type:
+    description:
+      - Default Type of database (MULTIPURPOSE, OLTP, DATA_WAREHOUSING)
+    required: False
+    default: MULTIPURPOSE
+    choices: ['MULTIPURPOSE','OLTP','DATA_WAREHOUSING']
+  racone_service:
+    description:
+      - If dbconfig_type = RACONENODE, a service has to be created along with the DB. This is the name of that service
+      - If no name is defined, the service will be called "{{ db_name }}_ronserv"
+    required: False
+    default: None
+    aliases: ['ron_service']
+  characterset:
+    description:
+      - The database characterset
+    required: False
+    default: AL32UTF8
+  memory_percentage:
+    description:
+      - The database total memory in % of available memory
+    required: False
+  memory_totalmb:
+    description:
+      - The database total memory in MB. Defaults to 1G
+    required: False
+    default: ['1024']
+  nodelist:
+    description:
+      - The list of nodes a RAC DB should be created on
+    required: False
+  amm:
+    description:
+      - Should Automatic Memory Management be used (memory_target, memory_max_target)
+    required: False
+    Default: False
+    choices: ['True','False']
+  initparams:
+    description:
+      - List of key=value pairs
+      - e.g
+      - "init_params:"
+      - "  - sga_target=1G"
+      - "  - sga_max_size=1G"
+    required: False
+  customscripts:
+    description:
+      - List of scripts to run after database is created
+      - e.g
+      - "customScripts:"
+      - "  - /tmp/xxx.sql"
+      - "  - /tmp/yyy.sql"
+    required: False
+  default_tablespace_type:
+    description:
+      - Database default tablespace type (DEFAULT_TBS_TYPE)
+    default: smallfile
+    choices: ['smallfile','bigfile']
+  default_tablespace:
+    description:
+      - Database default tablespace
+    default: smallfile
+    required: False
+  default_temp_tablespace:
+    description:
+      - Database default temporary tablespace
+    required: False
+  archivelog:
+    description:
+      - Puts the database is archivelog mode
+    required: False
+    default: false
+    choices: ['True','False']
+    type: bool
+  force_logging:
+    description:
+      - Enables force logging for the Database
+    required: False
+    default: false
+    choices: ['True','False']
+    type: bool
+  flashback:
+    description:
+      - Enables flashback for the database
+    required: False
+    default: false
+    choices: ['True','False']
+    type: bool
+  state:
+    description:
+      - The intended state of the database
+    default: present
+    choices: ['present','absent']
+  hostname:
+    description:
+      - The host of the database if using dbms_service
+    required: false
+    default: localhost
+    aliases: ['host']
+  port:
+    description:
+      - The listener port to connect to the database if using dbms_service
+    required: false
+    default: 1521
 
 
 
 notes:
-	- cx_Oracle needs to be installed
+  - cx_Oracle needs to be installed
 requirements: [ "cx_Oracle" ]
 author: Mikael Sandström, oravirt@gmail.com, @oravirt
 '''
@@ -211,67 +211,67 @@ author: Mikael Sandström, oravirt@gmail.com, @oravirt
 EXAMPLES = '''
 # Create a DB (non-cdb)
 oracle_db:
-	oh=/u01/app/oracle/12.2.0.1/db1
-	db_name=orclcdb
-	syspw=Oracle_123
-	state=present
-	storage=ASM
-	dfd=+DATA
-	rfd=+DATA
-	default_tablespace_type: bigfile
+  oh=/u01/app/oracle/12.2.0.1/db1
+  db_name=orclcdb
+  syspw=Oracle_123
+  state=present
+  storage=ASM
+  dfd=+DATA
+  rfd=+DATA
+  default_tablespace_type: bigfile
 
 
 - hosts: all
   gather_facts: true
   vars:
-	  oracle_home: /u01/app/oracle/12.2.0.1/db1
-	  dbname: orclcdb
-	  dbunqname: "{{ dbname}}_unq"
-	  container: True
-	  dbsid: "{{ dbname }}"
-	  hostname: "{{ ansible_hostname }}"
-	  oracle_env:
-			 ORACLE_HOME: "{{ oracle_home }}"
-			 LD_LIBRARY_PATH: "{{ oracle_home }}/lib"
-	  myaction: present
-	  rspfile: "/tmp/dbca_{{dbname}}.rsp"
-	  initparameters:
-				- memory_target=0
-				- memory_max_target=0
-				- sga_target=1500M
-				- sga_max_size=1500M
-	  dfd: +DATA
-	  rfd: +FRA
-	  storage: ASM
-	  dbtype: SI
-	  #ron_service: my_ron_service
-	  #clnodes: racnode-dc1-1,racnode-dc1-2
+    oracle_home: /u01/app/oracle/12.2.0.1/db1
+    dbname: orclcdb
+    dbunqname: "{{ dbname}}_unq"
+    container: True
+    dbsid: "{{ dbname }}"
+    hostname: "{{ ansible_hostname }}"
+    oracle_env:
+       ORACLE_HOME: "{{ oracle_home }}"
+       LD_LIBRARY_PATH: "{{ oracle_home }}/lib"
+    myaction: present
+    rspfile: "/tmp/dbca_{{dbname}}.rsp"
+    initparameters:
+        - memory_target=0
+        - memory_max_target=0
+        - sga_target=1500M
+        - sga_max_size=1500M
+    dfd: +DATA
+    rfd: +FRA
+    storage: ASM
+    dbtype: SI
+    #ron_service: my_ron_service
+    #clnodes: racnode-dc1-1,racnode-dc1-2
   tasks:
   - name: Manage database
-	oracle_db:
-		   service_name={{ dbname }}
-		   hostname={{ hostname}}
-		   user=sys
-		   password=Oracle_123
-		   state={{ myaction }}
-		   db_name={{ dbname }}
-		   sid={{ dbsid |default(omit)}}
-		   db_unique_name={{ dbunqname |default(omit) }}
-		   sys_password=Oracle_123
-		   system_password=Oracle_123
-		   responsefile={{ rspfile |default(omit) }}
-		   cdb={{ container |default (omit)}}
-		   initparams={{ initparameters |default(omit)}}
-		   datafile_dest={{ dfd }}
-		   recoveryfile_dest={{rfd}}
-		   storage_type={{storage}}
-		   dbconfig_type={{dbtype}}
-		   racone_service={{ ron_service|default(omit)}}
-		   amm=False
-		   memory_totalmb=1024
-		   nodelist={{ clnodes |default(omit) }}
-	environment: "{{ oracle_env }}"
-	run_once: True
+  oracle_db:
+       service_name={{ dbname }}
+       hostname={{ hostname}}
+       user=sys
+       password=Oracle_123
+       state={{ myaction }}
+       db_name={{ dbname }}
+       sid={{ dbsid |default(omit)}}
+       db_unique_name={{ dbunqname |default(omit) }}
+       sys_password=Oracle_123
+       system_password=Oracle_123
+       responsefile={{ rspfile |default(omit) }}
+       cdb={{ container |default (omit)}}
+       initparams={{ initparameters |default(omit)}}
+       datafile_dest={{ dfd }}
+       recoveryfile_dest={{rfd}}
+       storage_type={{storage}}
+       dbconfig_type={{dbtype}}
+       racone_service={{ ron_service|default(omit)}}
+       amm=False
+       memory_totalmb=1024
+       nodelist={{ clnodes |default(omit) }}
+  environment: "{{ oracle_env }}"
+  run_once: True
 '''
 import os, re, time
 

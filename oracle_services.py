@@ -57,7 +57,6 @@ options:
     force:
         description:
             - Adds the 'force' flag to the srvctl command
-            force:
         default: False
         choices: ['true','false']
     username:

@@ -53,7 +53,7 @@ options:
     objs:
         description:
             - When setting object privileges, list the objects the privileges are set for.
-            - Use format: SCHEMA_NAME.OBJECT_NAME
+            - "Use format: SCHEMA_NAME.OBJECT_NAME"
             - Wildcard (%) can be used in OBJECT_NAME part, for example HR.% to set privileges for all objects (with type objecttype) in schema HR.
             - Object names are CASE SENSITIVE, so by default use UPPER CASE.
         required: false
