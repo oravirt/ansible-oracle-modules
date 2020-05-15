@@ -150,6 +150,7 @@ def check_service_exists(cursor, module, msg, oracle_home, name, database_name):
         else:
             return False
 
+
 def create_service(cursor, module, msg, oracle_home, name, database_name, state, preferred_instances, available_instances, pdb, role, clbgoal, rlbgoal):
 
     if gimanaged:
@@ -200,13 +201,14 @@ def create_service(cursor, module, msg, oracle_home, name, database_name, state,
         else:
             return False
 
+
 def ensure_service_state(cursor, module, msg, oracle_home, name, database_name, state, preferred_instances, available_instances,
                         pdb, role, clbgoal, rlbgoal):
 
     configchange = False
     if not newservice:
-        _wanted_ai = ['']
-        _wanted_pi = ['']
+        _wanted_ai = []
+        _wanted_pi = []
         _wanted_config = {}
         if rlbgoal is not None:
             _wanted_config['rlb'] = rlbgoal
@@ -225,17 +227,17 @@ def ensure_service_state(cursor, module, msg, oracle_home, name, database_name, 
         _conf_temp = ""
         total_mod = []
 
-        if available_instances and available_instances is not None:
+        if available_instances:
             _wanted_ai = available_instances.split(',')
-        if preferred_instances and preferred_instances is not None:
+        if preferred_instances:
             _wanted_pi = preferred_instances.split(',')
 
         _curr_config,_curr_config_ai,_curr_config_pi = _get_service_config(cursor, module, msg, oracle_home, name, database_name)
 
         # Compare instance configurations
-        if _wanted_pi != _curr_config_pi:
+        if len(_wanted_pi) and _wanted_pi != _curr_config_pi:
             _inst_temp += ' -preferred %s' % (preferred_instances)
-        if _wanted_ai != _curr_config_ai and '' not in _wanted_ai:
+        if len(_wanted_ai) and _wanted_ai != _curr_config_ai:
             _inst_temp += ' -available %s' % (available_instances)
 
         if len(_inst_temp) > 0:
@@ -262,6 +264,8 @@ def ensure_service_state(cursor, module, msg, oracle_home, name, database_name, 
                         module.fail_json(msg=msg, changed=False)
             configchange = True
 
+    change=False # Set change to False by defualt
+
     if state == 'present':
         if newservice:
             module.exit_json(msg="Service %s (%s) successfully created" % (name, database_name), changed=True)
@@ -271,9 +275,7 @@ def ensure_service_state(cursor, module, msg, oracle_home, name, database_name, 
                 msg += 'after configchanges had been applied'
                 change=True
             module.exit_json(msg=msg, changed=change)
-
-    if state == 'started':
-        change = False
+    elif state == 'started':
         if start_service(cursor, module, msg, oracle_home, name, database_name, configchange):
             change = True
             msg = 'Service %s (%s) successfully created/started' % (name, database_name)
@@ -281,8 +283,7 @@ def ensure_service_state(cursor, module, msg, oracle_home, name, database_name, 
                 msg += ' and config changes have been applied'
                 change = True
             module.exit_json(msg=msg, changed=change)
-
-    if state == 'stopped':
+    elif state == 'stopped':
         if stop_service(cursor, module, msg, oracle_home, name, database_name):
             msg = 'Service %s (%s) successfully stopped' % (name, database_name)
             change = True
@@ -292,11 +293,11 @@ def ensure_service_state(cursor, module, msg, oracle_home, name, database_name, 
             module.exit_json(msg=msg, changed=change)
         else:
             msg = 'Service %s (%s) already stopped' % (name, database_name)
-            change = False
             if configchange:
                 msg += ' but config changes have been applied'
                 change=True
             module.exit_json(msg=msg, changed=change)
+
 
 def remove_service(cursor, module, msg, oracle_home, name, database_name, force):
 
@@ -326,6 +327,7 @@ def remove_service(cursor, module, msg, oracle_home, name, database_name, force)
         else:
             return False
 
+
 def _get_service_config(cursor, module, msg, oracle_home, name, database_name):
 
     _curr_config_dict = {}
@@ -348,7 +350,6 @@ def _get_service_config(cursor, module, msg, oracle_home, name, database_name):
             _curr_config_inst_pi = a[1].split(',')
 
     return _curr_config_dict, _curr_config_inst_ai,_curr_config_inst_pi
-
 
 
 def check_service_status(cursor, module, msg, oracle_home, name, database_name, state):
@@ -380,8 +381,6 @@ def check_service_status(cursor, module, msg, oracle_home, name, database_name, 
             return True
         else:
             return False
-
-
 
 
 def start_service(cursor, module, msg, oracle_home, name, database_name, configchange):
@@ -427,7 +426,6 @@ def start_service(cursor, module, msg, oracle_home, name, database_name, configc
 
 def stop_service(cursor, module, msg, oracle_home, name, database_name):
 
-
     if gimanaged:
         command = "%s/bin/srvctl stop service -d %s -s %s" % (oracle_home, database_name, name)
         (rc, stdout, stderr) = module.run_command(command)
@@ -462,7 +460,6 @@ def stop_service(cursor, module, msg, oracle_home, name, database_name):
             module.exit_json(msg=msg, changed=False)
 
 
-
 def execute_sql_get(module, msg, cursor, sql):
 
     #module.exit_json(msg="In execute_sql_get", changed=False)
@@ -480,6 +477,7 @@ def execute_sql_get(module, msg, cursor, sql):
     else:
         return False
 
+
 def execute_sql(module, msg, cursor, sql):
 
     try:
@@ -490,7 +488,6 @@ def execute_sql(module, msg, cursor, sql):
         module.fail_json(msg=msg, changed=False)
         return False
     return True
-
 
 
 def main():
@@ -520,11 +517,7 @@ def main():
             service_name        = dict(required=False, aliases = ['sn']),
             hostname            = dict(required=False, default = 'localhost', aliases = ['host']),
             port                = dict(required=False, default = 1521),
-
-
-
         ),
-
     )
 
     name                = module.params["name"]
@@ -656,9 +649,7 @@ def main():
             module.exit_json(msg=msg, changed=False)
 
 
-
     module.exit_json(msg="Unhandled exit", changed=False)
-
 
 
 
