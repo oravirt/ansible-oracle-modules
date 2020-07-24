@@ -193,6 +193,12 @@ def create_user(module, msg, cursor, schema, schema_password, schema_password_ha
 
 	total_sql.append(sql)
 
+	if grants:
+		sql = 'grant %s to %s' % (','.join(clean_list(grants)), schema)
+		if container:
+			sql += ' container = %s' % (container)
+		total_sql.append(sql)
+
 	if container_data:
 		altersql = 'alter user %s set container_data=%s container=current' % (schema, container)
 		total_sql.append(altersql)
