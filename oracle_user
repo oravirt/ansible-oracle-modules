@@ -85,6 +85,11 @@ options:
 			- The privileges granted to the new schema
 		required: false
 		default: None
+	quotas:
+		description:
+			- The quotas granted to the user
+		required: false
+		default: None	
 	state:
 		description:
 			- Whether the user should exist. Absent removes the user, locked/unlocked locks or unlocks the user
@@ -144,8 +149,19 @@ def check_user_exists(msg, cursor, schema):
 		msg = 'The schema (%s) already exists' % schema
 		return True
 
+# Create sql string for tablespace quotas
+def get_quotasstring(quotas):
+
+	quotasql = ''
+
+	for line in quotas:
+		quotasql += ' quota %s on %s ' %(line.split(':')[1], line.split(':')[0])
+	
+	return quotasql
+
+
 # Create the user/schema
-def create_user(module, msg, cursor, schema, schema_password, schema_password_hash, default_tablespace, default_temp_tablespace, profile, authentication_type, state, container, container_data, grants):
+def create_user(module, msg, cursor, schema, schema_password, schema_password_hash, default_tablespace, default_temp_tablespace, profile, authentication_type, state, container, container_data, grants, quotas):
 	grants_list=[]
 	total_sql = []
 	if not (schema):
@@ -171,7 +187,12 @@ def create_user(module, msg, cursor, schema, schema_password, schema_password_ha
 
 	if (default_tablespace):
 		sql += 'default tablespace %s '% default_tablespace
-		sql += 'quota unlimited on %s '% default_tablespace
+		if not (quotas):
+			sql += 'quota unlimited on %s '% default_tablespace
+
+	if (quotas):
+		sql += get_quotasstring(quotas)
+
 
 	if (default_temp_tablespace):
 		sql += 'temporary tablespace %s '% default_temp_tablespace
@@ -217,7 +238,7 @@ def get_user_password_hash(module, msg, cursor, schema):
 	return pwhashresult
 
 # Modify the user/schema
-def modify_user(module, msg, cursor, schema, schema_password, schema_password_hash, default_tablespace, default_temp_tablespace, update_password, profile, authentication_type, state, container_data):
+def modify_user(module, msg, cursor, schema, schema_password, schema_password_hash, default_tablespace, default_temp_tablespace, update_password, profile, authentication_type, state, container_data, quotas):
 
 	sql_get_curr_def = 'select lower(account_status)'
 	sql = 'alter user %s' % schema
@@ -237,8 +258,10 @@ def modify_user(module, msg, cursor, schema, schema_password, schema_password_ha
 
 	if default_tablespace:
 		sql += ' default tablespace %s' % default_tablespace
-		sql += ' quota unlimited on %s '% default_tablespace
 		sql_get_curr_def += ' ,lower(default_tablespace)'
+
+		if not (quotas):
+			sql += ' quota unlimited on %s '% default_tablespace
 
 	if default_temp_tablespace:
 		sql += ' temporary tablespace %s ' % default_temp_tablespace
@@ -265,6 +288,8 @@ def modify_user(module, msg, cursor, schema, schema_password, schema_password_ha
 		want_account_status = state
 		sql += ' account lock password expire'
 
+	if (quotas):
+		sql += get_quotasstring(quotas)
 
 	wanted_list = []
 	wanted_list.append(want_account_status)
@@ -316,7 +341,14 @@ def modify_user(module, msg, cursor, schema, schema_password, schema_password_ha
 				else:
 					module.exit_json(msg='Successfully altered the user (%s)' % (schema), changed=True)
 			else:
-				 module.exit_json(msg='The schema (%s) is in the intented state' % (schema), changed=False)
+				# always update user when list of quotas is defined
+				# => modify_user require a refactoring to check against a changed quotas definition...
+				#    This is a todo for the future...
+				if quotas:
+					execute_sql(module, msg, cursor, sql)
+					module.exit_json(msg='Successfully altered the user (%s)' % (schema), changed=True)
+				else:
+					module.exit_json(msg='The schema (%s) is in the intented state' % (schema), changed=False)
 		else:
 			# do the complete change -> exit with change=True
 			# module.exit_json(msg=sql)
@@ -395,7 +427,8 @@ def main():
 			authentication_type = dict(default='password', choices=['password','external','global']),
 			container      = dict(default=None),
 			container_data = dict(default=None),
-			grants         = dict(default=None, type="list")
+			grants         = dict(default=None, type="list"),
+			quotas         = dict(default=None, type="list")
 
 		),
 		mutually_exclusive=[['schema_password', 'schema_password_hash']]
@@ -420,6 +453,7 @@ def main():
 	container = module.params["container"]
 	container_data = module.params["container_data"]
 	grants = module.params["grants"]
+	quotas = module.params["quotas"]
 
 	if not cx_oracle_exists:
 		module.fail_json(msg="The cx_Oracle module is required. 'pip install cx_Oracle' should do the trick. If cx_Oracle is installed, make sure ORACLE_HOME & LD_LIBRARY_PATH is set")
@@ -463,13 +497,13 @@ def main():
 
 	if state not in ('absent'):
 		if not check_user_exists(msg, cursor, schema):
-			if create_user(module, msg, cursor, schema, schema_password, schema_password_hash, default_tablespace, default_temp_tablespace, profile, authentication_type, state, container, container_data, grants):
+			if create_user(module, msg, cursor, schema, schema_password, schema_password_hash, default_tablespace, default_temp_tablespace, profile, authentication_type, state, container, container_data, grants, quotas):
 				msg = 'The schema %s has been created successfully' % (schema)
 				module.exit_json(msg=msg, changed=True)
 			else:
 				module.fail_json(msg=msg, changed=False)
 		else:
-			modify_user(module, msg, cursor, schema, schema_password, schema_password_hash, default_tablespace, default_temp_tablespace, update_password, profile, authentication_type, state, container_data)
+			modify_user(module, msg, cursor, schema, schema_password, schema_password_hash, default_tablespace, default_temp_tablespace, update_password, profile, authentication_type, state, container_data, quotas)
 
 	# elif state in ('unlocked','locked', ''):
 	# 	if not check_user_exists(msg, cursor, schema):
