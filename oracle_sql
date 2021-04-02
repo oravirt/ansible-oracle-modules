@@ -204,7 +204,7 @@ def main():
     cursor = conn.cursor()
 
     if sql:
-        if sql.lower().startswith('begin '):
+        if sql.lower().startswith('begin ') or sql.lower().startswith('declare '):
             execute_sql(module, cursor, conn, sql)
             msg = 'SQL executed: %s' % (sql)
             module.exit_json(msg=msg, changed=True)
