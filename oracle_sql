@@ -74,6 +74,7 @@ EXAMPLES = '''
     script: /u01/scripts/create-tables-and-insert-default-values.sql
 '''
 import os
+import re
 from ansible.module_utils.basic import AnsibleModule
 
 try:
@@ -131,6 +132,10 @@ def clean_sqlfile(sqlfile):
     sqlfile = sqlfile.strip()
     sqlfile = sqlfile.lstrip()
     sqlfile = sqlfile.lstrip()
+
+    sqlfile = sqlfile.replace('"', '')
+    sqlfile = re.sub(r'--.*', '', sqlfile)
+
     sqlfile = os.linesep.join([s for s in sqlfile.splitlines() if s])
     return sqlfile
 
@@ -224,13 +229,13 @@ def main():
             sqlfile = clean_sqlfile(sqlfile)
             
             if sqlfile.endswith('/') or ('create or replace') in sqlfile.lower():
-                sqldelim = '/'
+                sqldelim = '^/'
             else:
                 sqldelim = ';'
             
             sqlfile = sqlfile.strip(sqldelim)
-            sql = sqlfile.split(sqldelim)
-            
+            sql = re.split(sqldelim, sqlfile)
+
             for q in sql:
                 execute_sql(module, cursor, conn, q)
             msg = 'Finished running script %s \nContents: \n%s' % (script, sqlfile)
