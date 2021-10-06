@@ -222,9 +222,10 @@ def modify_user(module, cursor, schema, schema_password, schema_password_hash, d
 	sql_get_curr_def = 'select lower(account_status) as account_status'
 	sql = 'alter user %s' % schema
 
+	old_pw_hash = get_user_password_hash(module, cursor, schema)
 	if update_password == 'always':
 		if authentication_type == 'password':
-			if schema_password_hash:
+			if schema_password_hash and schema_password_hash != old_pw_hash:
 				sql += ''' identified by values '%s' ''' % (schema_password_hash)
 			elif schema_password:
 				sql += ''' identified by "%s" ''' % (schema_password)
