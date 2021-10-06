@@ -378,7 +378,7 @@ def main():
 		argument_spec = dict(
 			oracle_home   = dict(required=False, aliases=['oh']),
 			hostname      = dict(default='localhost'),
-			port          = dict(default=1521),
+			port          = dict(default=1521, type="int"),
 			service_name  = dict(required=True, aliases = ['tns']),
 			user          = dict(required=False),
 			password      = dict(required=False, no_log=True),
