@@ -103,7 +103,7 @@ options:
 notes:
     -
 requirements: [ "os","pwd","distutils.version" ]
-author: Mikael Sandström, oravirt@gmail.com, @oravirt
+author: Mikael SandstrÃ¶m, oravirt@gmail.com, @oravirt
 '''
 
 EXAMPLES = '''
