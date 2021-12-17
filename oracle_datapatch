@@ -120,6 +120,9 @@ def check_db_exists(module, msg, oracle_home, db_name, sid, db_unique_name ):
                 return False
         elif 'Database name: %s' % (db_name) in stdout: #<-- Database already exist
             return True
+        else:
+            msg = '%s' % (stdout) # this assignment does nothing as msg is not global --> should be fixed later
+            return True
     else:
         existingdbs = []
         oratabfile = '/etc/oratab'

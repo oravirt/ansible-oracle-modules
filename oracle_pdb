@@ -54,6 +54,11 @@ options:
 		required: false
 		default: None
 		aliases: ['plug_dest','upd','pd']
+	as_clone:
+		description:
+			- Create PDB as clone?
+		required: false
+		default: false
 	username:
 		description:
 			- The database username to connect to the database
@@ -158,12 +163,15 @@ def quote_string(item):
 		return value
 
 def create_pdb(cursor, module, msg, oracle_home, name, sourcedb, pdb_admin_username,
-				pdb_admin_password, datafile_dest, save_state, unplug_dest, file_name_convert):
+				pdb_admin_password, datafile_dest, save_state, unplug_dest, file_name_convert, as_clone):
 
 	run_sql = []
 	opensql = 'alter pluggable database %s open instances=all' % (name)
 	createsql = 'create pluggable database %s ' % (name)
 
+
+	if as_clone:
+		createsql += ' as clone '
 
 	if unplug_dest is not None:
 		createsql += ' using \'%s\' ' % (unplug_dest)
@@ -349,6 +357,7 @@ def main():
 			pdb_admin_password     = dict(required=False, no_log=True, default = 'pdb_admin', aliases = ['pdbadmpw']),
 			datafile_dest          = dict(required=False, aliases = ['dfd','create_file_dest']),
 			unplug_dest            = dict(required=False, aliases = ['plug_dest','upd','pd']),
+			as_clone               = dict(required=False, default=False, type = 'bool'),
 			file_name_convert      = dict(required=False, aliases = ['fnc']),
 			service_name_convert   = dict(required=False, aliases = ['snc']),
 			default_tablespace_type  = dict(default='smallfile',choices = ['smallfile','bigfile']),
@@ -376,6 +385,7 @@ def main():
 	pdb_admin_password     = module.params["pdb_admin_password"]
 	datafile_dest          = module.params["datafile_dest"]
 	unplug_dest            = module.params["unplug_dest"]
+	as_clone               = module.params["as_clone"]
 	file_name_convert      = module.params["file_name_convert"]
 	service_name_convert   = module.params["service_name_convert"]
 	default_tablespace_type = module.params["default_tablespace_type"]
@@ -440,7 +450,7 @@ def main():
 
 	if state in ('present','closed', 'open', 'restricted','read_only','read_write'):
 		if not check_pdb_exists(cursor, module, msg, name):
-			if create_pdb(cursor, module, msg, oracle_home, name, sourcedb, pdb_admin_username, pdb_admin_password, datafile_dest, save_state, unplug_dest, file_name_convert):
+			if create_pdb(cursor, module, msg, oracle_home, name, sourcedb, pdb_admin_username, pdb_admin_password, datafile_dest, save_state, unplug_dest, file_name_convert, as_clone):
 				ensure_pdb_state(cursor, module, msg, name, state, newpdb,default_tablespace,default_tablespace_type,default_temp_tablespace,timezone)
 				module.exit_json(msg=msg, changed=True)
 			else:
