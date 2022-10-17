@@ -173,10 +173,10 @@ def ensure_profile_state(cursor, module, msg, name, state, attribute_name, attri
         # Make sure attributes are lower case
         attribute_name =  [x.lower() for x in attribute_name]
         attribute_value =  [str(y).lower() for y in attribute_value]
-        wanted_attributes = zip(attribute_name,attribute_value)
+        wanted_attributes = list(zip(attribute_name,attribute_value))
 
         # Check the current attributes
-        attribute_names_ =','.join(['\''+n[0]+'\'' for n in (wanted_attributes)])
+        attribute_names_ =','.join(['\''+n[0]+'\'' for n in wanted_attributes])
         if len(attribute_names_) != 0:
             current_attributes = get_current_attributes (cursor, module, msg, name, attribute_names_)
 
