@@ -160,9 +160,9 @@ def create_user(module, cursor, schema, schema_password, schema_password_hash, d
 
 	if authentication_type == 'password':
 		if (schema_password_hash):
-			sql = 'create user %s identified by values \"%s\" ' % (schema, schema_password_hash)
+			sql = '''create user %s identified by values '%s' ''' % (schema, schema_password_hash)
 		else:
-			sql = 'create user %s identified by \"%s\" '% (schema, schema_password)
+			sql = '''create user %s identified by "%s" ''' % (schema, schema_password)
 	elif authentication_type == 'global':
 		sql = 'create user %s identified globally ' % (schema)
 	elif authentication_type == 'external':
@@ -219,111 +219,91 @@ def get_user_password_hash(module, cursor, schema):
 # Modify the user/schema
 def modify_user(module, cursor, schema, schema_password, schema_password_hash, default_tablespace, default_temp_tablespace, update_password, profile, authentication_type, state, container_data):
 
-	sql_get_curr_def = 'select lower(account_status)'
+	sql_get_curr_def = 'select lower(account_status) as account_status'
 	sql = 'alter user %s' % schema
 
+	old_pw_hash = get_user_password_hash(module, cursor, schema)
 	if update_password == 'always':
 		if authentication_type == 'password':
-			if schema_password_hash:
-				sql += ' identified by values \'%s\'' % (schema_password_hash)
+			if schema_password_hash and schema_password_hash != old_pw_hash:
+				sql += ''' identified by values '%s' ''' % (schema_password_hash)
 			elif schema_password:
-				sql += ' identified by %s ' % (schema_password)
+				sql += ''' identified by "%s" ''' % (schema_password)
 		elif authentication_type == 'external':
 			sql += ' identified externally '
-			sql_get_curr_def += ' ,lower(authentication_type)'
+			sql_get_curr_def += ' ,lower(authentication_type) as authentication_type'
 		elif authentication_type == 'global':
 			sql += ' identified globally '
-			sql_get_curr_def += ' ,lower(authentication_type)'
+			sql_get_curr_def += ' ,lower(authentication_type) as authentication_type'
 
 	if default_tablespace:
 		sql += ' default tablespace %s' % default_tablespace
 		sql += ' quota unlimited on %s '% default_tablespace
-		sql_get_curr_def += ' ,lower(default_tablespace)'
+		sql_get_curr_def += ' ,lower(default_tablespace) as default_tablespace'
 
 	if default_temp_tablespace:
 		sql += ' temporary tablespace %s ' % default_temp_tablespace
-		sql_get_curr_def += ' ,lower(temporary_tablespace)'
+		sql_get_curr_def += ' ,lower(temporary_tablespace) as temporary_tablespace'
 
 	if profile:
 		sql += ' profile %s ' % profile
-		sql_get_curr_def += ' ,lower(profile)'
+		sql_get_curr_def += ' ,lower(profile) as profile'
 
-	want_account_status = ''
+	want_account_status = None
 	if state == 'present' or state == 'unlocked':
-		want_account_status = 'open'
+		want_account_status = ('ACCOUNT_STATUS', 'open')
 		sql += ' account unlock'
 
 	elif state == 'locked':
-		want_account_status = state
+		want_account_status = ('ACCOUNT_STATUS', state.lower())
 		sql += ' account lock'
 
 	elif state == 'expired':
-		want_account_status = state
+		want_account_status = ('ACCOUNT_STATUS', state.lower())
 		sql += ' password expire'
 
 	elif state == 'expired & locked':
-		want_account_status = state
+		want_account_status = ('ACCOUNT_STATUS', state.lower())
 		sql += ' account lock password expire'
 
-
-	wanted_list = []
-	wanted_list.append(want_account_status)
+	wanted_set = set()
+	if want_account_status:
+		wanted_set.add(want_account_status)
 
 	if authentication_type != 'password' and update_password == 'always':
-		wanted_list.append(authentication_type)
+		wanted_set.add(('AUTHENTICATION_TYPE', authentication_type.lower()))
 
 	if default_tablespace:
-		wanted_list.append(default_tablespace)
+		wanted_set.add(('DEFAULT_TABLESPACE', default_tablespace.lower()))
 
 	if default_temp_tablespace:
-		wanted_list.append(default_temp_tablespace)
+		wanted_set.add(('TEMPORARY_TABLESPACE', default_temp_tablespace.lower()))
 
 	if profile:
-		wanted_list.append(profile)
+		wanted_set.add(('PROFILE', profile.lower()))
 
 	sql_get_curr_def += ' from dba_users where username = upper(\'%s\')' % schema
 
-	if update_password == 'always':
-		old_pw_hash = get_user_password_hash(module, cursor, schema)
+	current_set = execute_sql_get_as_set(module, cursor, sql_get_curr_def)
 
-	wanted_list = [x.lower() for x in wanted_list]
-	curr_defaults = execute_sql_get(module, cursor, sql_get_curr_def)
-	curr_defaults = [list(t) for t in curr_defaults]
+	if schema_password_hash:
+		current_set.add(('PASSWORD_HASH', old_pw_hash))
+		wanted_set.add(('PASSWORD_HASH', schema_password_hash))
 
-	if (schema_password_hash):
-		if update_password == 'always':
-			# if (wanted_list in curr_defaults) and (old_pw_hash == schema_password_hash):
-			# 	# Everything is kosher, exit changed=False
-			# 	module.exit_json(msg='The schema (%s) is in the intented state' % (schema), changed=False)
-			# else:
-			# 	# Make the change and exit changed=True
-				execute_sql(module, cursor, sql)
-				module.exit_json(msg='Successfully altered the user (%s)' % (schema), changed=True)
-		else:
-			if (wanted_list in curr_defaults):
-				module.exit_json(msg='The schema (%s) is in the intented state' % (schema), changed=False)
-			else:
-				# Make the change and exit changed=Truecontainer = module.params["container"]
-				execute_sql(module, cursor, sql)
-				module.exit_json(msg='Successfully altered the user (%s)' % (schema), changed=True)
+        # update_password == 'always' and plaintext password was provided
+	if update_password == 'always' and schema_password:
+		#module.warn(msg=sql)
+		execute_sql(module, cursor, sql)
+		module.exit_json(msg='Successfully altered the user (%s)' % (schema), changed=True)
+
+        # wanted list is subset of current settings, do not do anything
+	if wanted_set.issubset(current_set):
+		module.exit_json(msg='The schema (%s) is in the intented state' % (schema), changed=False)
 	else:
-		if (wanted_list in curr_defaults):
-			if update_password == 'always':
-				## DISABLING THE PRE/POST-CHECK
-				# change everything and compare hash pre/post. If same => exit change=False else exit change=True
-				execute_sql(module, cursor, sql)
-				# new_pw_hash = get_user_password_hash(module, cursor, schema)
-				# if new_pw_hash == old_pw_hash:
-				# 	module.exit_json(msg='The schema (%s) is in the intented state' % (schema), changed=False)
-				# else:
-				module.exit_json(msg='Successfully altered the user (%s)' % (schema), changed=True)
-			else:
-				 module.exit_json(msg='The schema (%s) is in the intented state' % (schema), changed=False)
-		else:
-			# do the complete change -> exit with change=True
-			# module.exit_json(msg=sql)
-			execute_sql(module, cursor, sql)
-			module.exit_json(msg='Successfully altered the user (%s, %s)' % (schema, sql), changed=True)
+		# do the complete change -> exit with change=True
+		# module.warn(msg=sql)
+		execute_sql(module, cursor, sql)
+		module.exit_json(msg='Successfully altered the user (%s) / %s => %s' % (schema,str(current_set),str(wanted_set)), changed=True)
 
 	return True
 
@@ -352,6 +332,22 @@ def execute_sql_get(module, cursor, sql):
 	return result
 
 
+def execute_sql_get_as_set(module, cursor, sql):
+
+	try:
+			cursor.execute(sql)
+			columns = [column[0] for column in cursor.description]
+			results = set()
+			for row in cursor.fetchall():		
+				results.update(set(zip(columns, row)))
+	except cx_Oracle.DatabaseError as exc:
+			error, = exc.args
+			msg = error.message+ ': sql: ' + sql
+			module.fail_json(msg=msg)
+
+	return results
+
+
 # Drop the user
 def drop_user(module, cursor, schema):
 	black_list = ['sys','system','dbsnmp']
@@ -361,6 +357,8 @@ def drop_user(module, cursor, schema):
 	   return False
 
 	sql = 'drop user %s cascade' % schema
+
+	#module.warn(msg=sql)
 
 	try:
 		cursor.execute(sql)
@@ -380,7 +378,7 @@ def main():
 		argument_spec = dict(
 			oracle_home   = dict(required=False, aliases=['oh']),
 			hostname      = dict(default='localhost'),
-			port          = dict(default=1521),
+			port          = dict(default=1521, type="int"),
 			service_name  = dict(required=True, aliases = ['tns']),
 			user          = dict(required=False),
 			password      = dict(required=False, no_log=True),
