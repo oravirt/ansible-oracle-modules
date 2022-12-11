@@ -60,11 +60,12 @@ options:
         description:
             - Shall the SQL be applied to CDB, PDBs, or both?
         values:
-            - default: if catcon_pl is filled then all_pdbs else cdb
+            - default: if catcon_pl is filled then all_pdbs_and_root else cdb
             - db: alias for cdb, allows for better readability for non-cdb
             - cdb: apply to root container or whole db
             - pdbs: apply to specified PDB's only (requires pdb_list)
-            - all_pdbs: apply to all PDB's except PDB$SEED
+            - all_pdbs: apply to all PDB's except PDB$SEED and CDB$ROOT
+            - all_pdbs_and_root: apply to all PDB's except PDB$SEED
         required: false
         default: cdb
     pdb_list:
@@ -169,13 +170,21 @@ from copy import copy
 
 changed = False
 result = ""
-err_msg = None
+err_msg = ""
 oracle_home = ""
 pdb_list = ""
 sql_process = None
+debug_trace = ""
 
 # Maximum runtime for sqlplus and catcon.pl in seconds. 0 means no timeout.
 timeout = 0
+
+def trc(msg):
+    global debug_trace
+    debug_trace += msg
+    if msg[-1] != "\n":
+        debug_trace += "\n"
+    return msg
 
 # dictify is based on https://stackoverflow.com/questions/2148119/how-to-convert-an-xml-string-to-a-dictionary/10077069#10077069
 def dictify(r,root=True):
@@ -202,19 +211,22 @@ def sqlplus():
 
 def conn(username, password):
     if username == None:
-        return "conn / as sysdba\n"
+        return trc("conn / as sysdba\n")
     else:
+        trc("conn " + username + "/***")
         return "conn " + "/".join([username, password]) + "\n"
 
 def sql_input(sql, username, password, pdb):
-    sql_scr  = "set heading off echo off feedback off termout on\n"
-    sql_scr += "set long 1000000 pagesize 0 linesize 1000 trimspool on\n"
+    trc("-- sql_input start --")
+    sql_scr  = trc("set heading off echo off feedback off termout on\n")
+    sql_scr += trc("set long 1000000 pagesize 0 linesize 1000 trimspool on\n")
     sql_scr += conn(username, password)
 
     if pdb is not None:
-        sql_scr += "alter session set container = " + pdb + ";\n"
-    sql_scr += sql + "\n"
-    sql_scr += "exit;\n"
+        sql_scr += trc("alter session set container = " + pdb + ";\n")
+    sql_scr += trc(sql + "\n")
+    sql_scr += trc("exit;\n")
+    trc("-- sql_input end --")
     return sql_scr
 
 def kill_process():
@@ -226,18 +238,24 @@ def kill_process():
 def run_sql_p(sql, username, password, scope, pdb_list):
     global changed, err_msg, sql_process
 
+    trc("-- run_sql_p start --")
     err_msg = ""
     result = ""
     if scope == 'pdbs':
+        trc("-- run_sql_p -- scope == 'pdbs' --")
         for pdb in pdb_list.split():
+            trc("-- run_sql_p -- call run_sql --")
             result += run_sql(sql, username, password, pdb)
     else:
+        trc("-- run_sql_p -- scope != 'pdbs' --")
         result = run_sql(sql, username, password, None)
+    trc("-- run_sql_p end --")
     return result
 
 def run_sql(sql, username, password, pdb):
     global changed, err_msg, sql_process
 
+    trc("-- run_sql start --")
     t = None
     try:
         sql_cmd = sql_input(sql, username, password, pdb)
@@ -245,54 +263,72 @@ def run_sql(sql, username, password, pdb):
         if timeout > 0:
             t = Timer(timeout, kill_process)
             t.start()
-        [sout, serr] = sql_process.communicate(input = sql_cmd)
+        [sout, serr] = sql_process.communicate(input = sql_cmd.encode('latin-1'))
     except Exception as e:
+        trc("-- run_sql -- catched exception --")
         err_msg += 'Could not call sqlplus. %s. called: %s.' % (to_native(e), " ".join(sqlplus()))
         return "[ERR]"
     finally:
+        trc("-- run_sql -- finally --")
         if timeout > 0 and t is not None:
             t.cancel()
     if sql_process.returncode != 0:
-        err_msg += "called: %s\nreturncode: %d\nresult: %s. stderr = %s." % (sql_cmd, sql_process.returncode, sout, serr)
+        trc("-- run_sql -- sql_process.returncode != 0 --")
+        err_msg += "called: %s\nreturncode: %d\nresult: %s. stderr = %s." % (sql_cmd, sql_process.returncode, sout.decode(), serr.decode())
         return "[ERR]"
     sqlerr_pat = re.compile("^(ORA|TNS|SP2)-[0-9]+", re.MULTILINE)
-    sqlplus_err = sqlerr_pat.search(sout)
+    sqlplus_err = sqlerr_pat.search(sout.decode())
     if sqlplus_err:
+        trc("-- run_sql -- sqlplus_err is not None --")
         err_msg += "[ERR] sqlplus: %s\nERR Code: %s.\n" % (sql_cmd, sqlplus_err.group())
-        return "[ERR]\n%s\n" % sout.strip()
+        return "[ERR]\n%s\n" % sout.strip().decode()
 
     changed = True
-    return sout.strip()
+    trc("-- run_sql end --")
+    return sout.strip().decode()
 
 
 def check_creates_sql(sql, scope):
     global pdb_list
 
+    trc("-- check_creates_sql start --")
     if not sql.endswith(";"):
         sql += ";"
     if scope == 'cdb':
+        trc("-- check_creates_sql -- call run_sql --")
         res = run_sql(sql, None, None, None)
         # error handling see call of check_creates_sql
+        trc("-- check_creates_sql -- result: " + res + " --")
+        trc("-- check_creates_sql end --")
         return False if not res or res == "0" else True
     else:
         checked_pdb_list = ""
         for pdb in pdb_list.split():
+            trc("-- check_creates_sql -- call run_sql, pdb = " + pdb + " --")
             res = run_sql(sql, None, None, pdb)
             # error handling see call of check_creates_sql
+            trc("-- check_creates_sql -- result: " + res + " --")
             if not res or res == "0":
                 checked_pdb_list += " " + pdb
         pdb_list = checked_pdb_list.lstrip()
+        trc("-- check_creates_sql -- pdb_list: " + pdb_list + " --")
+        trc("-- check_creates_sql end --")
         return True if pdb_list == "" else False
 
 
 def is_container():
     return run_sql("select cdb from gv$database;", None, None, None) == 'YES'
 
-def get_all_pdbs():
+def get_all_pdbs(scope):
     global result, pdb_list
 
+    trc("-- get_all_pdbs start --")
     sql  = "select listagg(pdb_name, ' ') within group (order by pdb_name) from dba_pdbs where status = 'NORMAL' and pdb_name <> 'PDB$SEED';"
-    pdb_list = 'CDB$ROOT ' + run_sql(sql, None, None, None)
+    pdb_list = run_sql(sql, None, None, None)
+    if scope == 'all_pdbs_and_root':
+        pdb_list = 'CDB$ROOT ' + pdb_list
+    trc("-- get_all_pdbs -- pdb_list: " + pdb_list + " --")
+    trc("-- get_all_pdbs end --")
 
 
 def run_catcon_pl(catcon_pl):
@@ -326,14 +362,16 @@ def run_catcon_pl(catcon_pl):
         if timeout > 0:
             t.cancel()
         try:
+            with open(logdir + '/catcon0.log') as f:
+                result += f.read()
             shutil.rmtree(logdir)
         except OSError as exc:
+            result += sout.decode()
             if exc.errno != errno.ENOENT:
                 raise
     if sql_process.returncode != 0:
-        err_msg += "called: %s\nreturncode: %d\nresult: %s\nstderr = %s." % (" ".join(catcon_cmd), sql_process.returncode, sout, serr)
+        err_msg += "called: %s\nreturncode: %d\nresult: %s\nstderr = %s." % (" ".join(catcon_cmd), sql_process.returncode, sout.decode(), serr.decode())
         return
-    result += sout
     changed = True
 
 
@@ -350,7 +388,7 @@ def main():
             creates_sql    = dict(required = False),
             username       = dict(required = False),
             password       = dict(required = False, no_log = True),
-            scope          = dict(required = False, choices = ["default", "db", "cdb", "pdbs", "all_pdbs"], default = 'default'),
+            scope          = dict(required = False, choices = ["default", "db", "cdb", "pdbs", "all_pdbs", "all_pdbs_and_root"], default = 'default'),
             pdb_list       = dict(required = False),
             oracle_home    = dict(required = True),
             oracle_db_name = dict(required = True),
@@ -383,32 +421,35 @@ def main():
     if scope == 'db':
         scope = 'cdb'
     if scope == 'default':
-        scope = "all_pdbs" if catcon_pl is not None else "cdb"
+        scope = "all_pdbs_and_root" if catcon_pl is not None else "cdb"
     if scope == 'pdbs' and (pdb_list is None or pdb_list.strip() == ""):
-        module.exit_json(msg = "scope = pdbs, but pdb_list is empty", changed = False)
+        module.exit_json(msg = "scope = pdbs, but pdb_list is empty", changed = False, trace = debug_trace)
     if scope == 'cdb' and catcon_pl is not None:
         scope = 'pdbs'
         pdb_list = 'CDB$ROOT'
-    if scope == 'all_pdbs' and (catcon_pl is None or creates_sql is not None):
+    if scope in ['all_pdbs', 'all_pdbs_and_root']  and (catcon_pl is None or creates_sql is not None):
         if is_container():
+            get_all_pdbs(scope)
             scope = 'pdbs'
-            get_all_pdbs()
         else:
             scope = 'cdb'
-
+    trc("scope: " + scope)
+    
     if workdir is not None:
         try:
             os.chdir(workdir)
         except Exception as e:
-            module.fail_json(msg = 'Could not chdir to %s: %s.' % (workdir, to_native(e)), changed = False)
+            module.fail_json(msg = 'Could not chdir to %s: %s.' % (workdir, to_native(e)), changed = False, trace = debug_trace)
 
     if creates_sql is not None:
+        trc("call check_creates_sql")
         already_done = check_creates_sql(creates_sql, scope)
         if err_msg:
-            module.fail_json(msg = "%s\n%s" % (result, err_msg), changed = False)
+            module.fail_json(msg = "%s\n%s" % (result, err_msg), changed = False, trace = debug_trace)
         else:
+            trc("check_creates_sql said: already_done = {}".format(already_done))
             if already_done:
-                module.exit_json(msg = result, changed = False)
+                module.exit_json(msg = result, changed = False, trace = debug_trace)
 
     if pdb_list is not None:
         result = "Run on these PDBs: %s\n" % pdb_list
@@ -433,11 +474,11 @@ def main():
     if not err_msg:
         if sqlselect is not None:
             res_dict = dictify(ET.fromstring(result)) if result else {"ROW": []}
-            module.exit_json(msg = result, changed = False, state = res_dict)
+            module.exit_json(msg = result, changed = False, state = res_dict, trace = debug_trace)
         else:
-            module.exit_json(msg = result, changed = changed)
+            module.exit_json(msg = result, changed = changed, trace = debug_trace)
     else:
-        module.fail_json(msg = "%s\n%s" % (result, err_msg), changed = changed)
+        module.fail_json(msg = "%s\n%s\nENV:\n  ORACLE_HOME = %s\n  ORACLE_SID = %s\n" % (result, err_msg, oracle_home, oracle_db_name), changed = changed, trace = debug_trace)
 
 
 if __name__ == '__main__':

@@ -80,9 +80,11 @@ else:
     cx_oracle_exists = True
 
 
-# Check if the parameter exists
-def check_parameter_exists(module, mode, msg, cursor, name):
+msg = ['']
 
+# Check if the parameter exists
+def check_parameter_exists(module, mode, cursor, name):
+    global msg
 
     if not(name):
         module.fail_json(msg='Error: Missing parameter name', changed=False)
@@ -115,7 +117,8 @@ def check_parameter_exists(module, mode, msg, cursor, name):
 
 
 
-def modify_parameter(module, mode, msg, cursor, name, value, comment, scope, sid):
+def modify_parameter(module, mode, cursor, name, value, comment, scope, sid):
+    global msg
 
     contains = re.compile(r'[?*$%#()!\s,._/=+-]')
     starters = ('+','_','"','"_','/')
@@ -126,7 +129,7 @@ def modify_parameter(module, mode, msg, cursor, name, value, comment, scope, sid
 
 
 
-    currval = get_curr_value(module, mode, msg, cursor, name, scope)
+    currval = get_curr_value(module, mode, cursor, name, scope)
 
     if currval == value.lower() or not currval and value == "''":
         module.exit_json(msg='The parameter (%s) is already set to %s' % (name, value), changed=False)
@@ -179,7 +182,8 @@ def clean_string(item):
 
     return item
 
-def reset_parameter(module, mode, msg, cursor, name, value, comment, scope, sid):
+def reset_parameter(module, mode, cursor, name, value, comment, scope, sid):
+    global msg
 
     starters = ('+','_','"','"_')
     if not(name):
@@ -212,20 +216,21 @@ def reset_parameter(module, mode, msg, cursor, name, value, comment, scope, sid)
     return True
 
 
-def get_curr_value(module, mode, msg, cursor, name, scope):
+def get_curr_value(module, mode, cursor, name, scope):
+    global msg
 
     name = clean_string(name)
 
-    if scope == 'spfile':
-        parameter_source = 'v$spparameter'
-    else:
+    if scope == 'memory':
         parameter_source = 'v$parameter'
+    else:
+        parameter_source = 'v$spparameter'
 
     if mode == 'sysdba':
-        if scope == 'spfile':
-            sql = 'select lower(KSPSPFFTCTXSPDVALUE) from x$kspspfile where lower(KSPSPFFTCTXSPNAME) = lower(\'%s\')' % (name)
-        else:
+        if scope == 'memory':
             sql = 'select lower(y.ksppstdvl) from sys.x$ksppi x, sys.x$ksppcv y where x.indx = y.indx and x.ksppinm = lower(\'%s\')' % (name)
+        else:
+            sql = 'select lower(KSPSPFFTCTXSPDVALUE) from x$kspspfile where lower(KSPSPFFTCTXSPNAME) = lower(\'%s\')' % (name)
     else:
         sql = 'select lower(display_value) from %s where name = lower(\'%s\')' % (parameter_source, name)
 
@@ -242,8 +247,8 @@ def get_curr_value(module, mode, msg, cursor, name, scope):
 
 
 def main():
+    global msg
 
-    msg = ['']
     module = AnsibleModule(
         argument_spec = dict(
             hostname      = dict(default='localhost'),
@@ -312,8 +317,8 @@ def main():
     cursor = conn.cursor()
 
     if state == 'present':
-        if check_parameter_exists(module, mode, msg, cursor, name):
-            if modify_parameter(module, mode, msg, cursor, name, value, comment, scope, sid):
+        if check_parameter_exists(module, mode, cursor, name):
+            if modify_parameter(module, mode, cursor, name, value, comment, scope, sid):
                 module.exit_json(msg=msg, changed=True)
             else:
                 module.fail_json(msg=msg, changed=False)
@@ -321,8 +326,8 @@ def main():
             module.fail_json(msg=msg, changed=False)
 
     elif state == 'reset' or state == 'absent':
-        if check_parameter_exists(module, mode, msg, cursor, name):
-            if reset_parameter(module, mode, msg, cursor, name, value, comment, scope, sid):
+        if check_parameter_exists(module, mode, cursor, name):
+            if reset_parameter(module, mode, cursor, name, value, comment, scope, sid):
                 module.exit_json(msg=msg, changed=True)
             else:
                 module.fail_json(msg=msg, changed=False)
